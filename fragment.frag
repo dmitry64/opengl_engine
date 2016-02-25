@@ -10,8 +10,9 @@ in vec3 LightDirection_cameraspace;
 in vec3 vertexAmbientColor_out;
 in vec3 vertexDiffuseColor_out;
 in vec3 vertexSpecularColor_out;
+in float opacity_out;
 
-out vec3 color;
+out vec4 color;
 
 uniform vec3 LightPosition_worldspace;
 uniform sampler2D texture_sample;
@@ -19,7 +20,7 @@ uniform int hasTexture;
 
 void main(){
 	vec3 LightColor = vec3(1,1,1);
-	float LightPower = 900.0f;
+	float LightPower = 9000.0f;
 	vec3 MaterialDiffuseColor;
 
 	if(hasTexture==1)
@@ -41,8 +42,10 @@ void main(){
 	vec3 R = reflect(-l,n);
 	float cosAlpha = clamp( dot( E,R ), 0.0,1.0 );
 
-	color =
+	vec3 base_Color =
 		MaterialAmbientColor +
 		MaterialDiffuseColor * LightColor * LightPower * (cosTheta/ (distance*distance)) +
 		MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
+	color = vec4(base_Color.xyz,opacity_out);
+	//color.a = 0.3f;
 }

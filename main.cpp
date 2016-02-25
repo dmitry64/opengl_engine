@@ -13,6 +13,7 @@ struct custom_mesh {
     std::vector<float> diffusecolors;
     std::vector<float> ambientcolors;
     std::vector<float> specularcolors;
+    std::vector<float> opacity;
     GLuint vertexbuffer;
     GLuint uvbuffer;
     GLuint normalbuffer;
@@ -20,6 +21,7 @@ struct custom_mesh {
     GLuint ambientbuffer;
     GLuint diffusebuffer;
     GLuint specularbuffer;
+    GLuint opacitybuffer;
 };
 
 struct custom_texture {
@@ -89,7 +91,7 @@ int getTextureId(std::string name) {
             return it.operator*().id;
         it++;
     }
-    std::cout << "Texture " << name << " not found!" << std::endl;
+    //std::cout << "Texture " << name << " not found!" << std::endl;
     return -1;
 }
 
@@ -98,8 +100,8 @@ void display(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         float aspectRatio = (float) 800 / 600, fieldOfView = 60.0f;
         glm::mat4 ProjectionMatrix = glm::perspective(fieldOfView, aspectRatio, 1.0f, 1000.0f);
-        glm::mat4 ViewMatrix = glm::lookAt(glm::vec3(15.0f * sin(angle / 8), 5.0f, 15.0f * cos(angle / 8)),
-                                           glm::vec3(0.0f, 2.3f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 ViewMatrix = glm::lookAt(glm::vec3(80.0f * sin(angle) - 300, 200.0f, 80.0f * cos(angle) + 300),
+                                           glm::vec3(-70.0f, 2.3f, 70.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 ModelMatrix = glm::mat4();
         glm::mat4 MVP = ProjectionMatrix * ViewMatrix * ModelMatrix;
 
@@ -113,16 +115,16 @@ void display(void) {
         glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &ModelMatrix[0][0]);
         glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &ViewMatrix[0][0]);
 
-        glm::vec3 lightPos = glm::vec3(20, 19, 17);
+        glm::vec3 lightPos = glm::vec3(-200, 150, 200);
         glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
-
+/*
         glBegin(GL_POLYGON);
         glNormal3i(0, 1, 0);
         glVertex3i(-40, 0, 40);
         glVertex3i(40, 0, 40);
         glVertex3i(40, 0, -40);
         glVertex3i(-40, 0, -40);
-        glEnd();
+        glEnd();*/
 
         std::vector<custom_mesh>::iterator it = meshes.begin();
         GLint vbpos = glGetAttribLocation(shaderProgram, "vertexPosition_modelspace");
@@ -131,6 +133,7 @@ void display(void) {
         GLint ambientpos = glGetAttribLocation(shaderProgram, "vertexAmbientColor");
         GLint diffusepos = glGetAttribLocation(shaderProgram, "vertexDiffuseColor");
         GLint specularpos = glGetAttribLocation(shaderProgram, "vertexSpecularColor");
+        GLint opacitypos = glGetAttribLocation(shaderProgram, "opacity");
 
         glEnableVertexAttribArray(normpos);
         glEnableVertexAttribArray(vbpos);
@@ -138,7 +141,7 @@ void display(void) {
         glEnableVertexAttribArray(ambientpos);
         glEnableVertexAttribArray(diffusepos);
         glEnableVertexAttribArray(specularpos);
-
+        glEnableVertexAttribArray(opacitypos);
         while (it != meshes.end()) {
             glBindBuffer(GL_ARRAY_BUFFER, it.operator*().vertexbuffer);
             glVertexAttribPointer(vbpos, 3, GL_FLOAT, GL_FALSE, 0, (void *) 0);
@@ -154,6 +157,9 @@ void display(void) {
             glVertexAttribPointer(ambientpos, 3, GL_FLOAT, GL_FALSE, 0, (void *) 0);
             glBindBuffer(GL_ARRAY_BUFFER, it.operator*().specularbuffer);
             glVertexAttribPointer(specularpos, 3, GL_FLOAT, GL_FALSE, 0, (void *) 0);
+
+            glBindBuffer(GL_ARRAY_BUFFER, it.operator*().opacitybuffer);
+            glVertexAttribPointer(opacitypos, 1, GL_FLOAT, GL_FALSE, 0, (void *) 0);
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it.operator*().indexbuffer);
 
@@ -173,7 +179,7 @@ void display(void) {
             glDrawElements(GL_TRIANGLES, it.operator*().model.indices.size(), GL_UNSIGNED_INT, nullptr);
             it++;
         }
-
+        glDisableVertexAttribArray(opacitypos);
         glDisableVertexAttribArray(specularpos);
         glDisableVertexAttribArray(diffusepos);
         glDisableVertexAttribArray(ambientpos);
@@ -189,7 +195,7 @@ int main(int argc, char **argv) {
     std::cout << "Loading model..." << std::endl;
 
     std::string errstr;
-    tinyobj::LoadObj(shapes, materials, errstr, "car.obj", "./", true);
+    tinyobj::LoadObj(shapes, materials, errstr, "model.obj", "./", true);
 
     std::cout << "Model loaded." << std::endl;
     std::cout << "Meshes count = " << shapes.size() << std::endl;
@@ -205,7 +211,7 @@ int main(int argc, char **argv) {
         iter++;
     }
 
-    angle = 0;
+    angle = 6.0f;
 
     glutInitWindowSize(800, 600);
     glutInitWindowPosition(100, 100);
@@ -216,7 +222,7 @@ int main(int argc, char **argv) {
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
 
-    glClearColor(0.1f, 0.1f, 0.1f, 1.f);
+    glClearColor(0.61f, 0.78f, 0.93f, 1.f);
 
     glewExperimental = GL_TRUE;
     GLenum error = glewInit();
@@ -227,6 +233,8 @@ int main(int argc, char **argv) {
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     std::cout << "v: " << glGetString(GL_VERSION) << std::endl;
 
     vertexSource = filetobuf("vertex.vert");
@@ -306,6 +314,11 @@ int main(int argc, char **argv) {
                     textures.push_back(mytexture1);
                 }
             }
+            float d = materials.at(id).dissolve;
+            //std::cout << "d = " <<d <<std::endl;
+            mm.opacity.push_back(d);
+            mm.opacity.push_back(d);
+            mm.opacity.push_back(d);
 
             mm.diffusecolors.push_back(diffuse[0]);
             mm.diffusecolors.push_back(diffuse[1]);
@@ -358,6 +371,12 @@ int main(int argc, char **argv) {
         glBufferData(GL_ARRAY_BUFFER, mm.specularcolors.size() * sizeof(GL_FLOAT), mm.specularcolors.data(),
                      GL_STATIC_DRAW);
 
+        GLuint opacitybuffer;
+        glGenBuffers(1, &opacitybuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, opacitybuffer);
+        glBufferData(GL_ARRAY_BUFFER, mm.opacity.size() * sizeof(GL_FLOAT), mm.opacity.data(),
+                     GL_STATIC_DRAW);
+
         GLuint indexbuffer;
         glGenBuffers(1, &indexbuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
@@ -371,6 +390,7 @@ int main(int argc, char **argv) {
         mm.diffusebuffer = diffusebuffer;
         mm.ambientbuffer = ambientbuffer;
         mm.specularbuffer = specularbuffer;
+        mm.opacitybuffer = opacitybuffer;
 
         meshes.push_back(mm);
 

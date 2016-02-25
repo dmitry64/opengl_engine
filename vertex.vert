@@ -6,6 +6,7 @@ in vec3 vertexNormal_modelspace;
 in vec3 vertexAmbientColor;
 in vec3 vertexDiffuseColor;
 in vec3 vertexSpecularColor;
+in float opacity;
 
 out vec2 UV;
 out vec3 Position_worldspace;
@@ -15,6 +16,7 @@ out vec3 LightDirection_cameraspace;
 out vec3 vertexAmbientColor_out;
 out vec3 vertexDiffuseColor_out;
 out vec3 vertexSpecularColor_out;
+out float opacity_out;
 
 uniform mat4 MVP;
 uniform mat4 V;
@@ -33,5 +35,6 @@ void main(){
 	vertexDiffuseColor_out = vertexDiffuseColor;
 	vertexSpecularColor_out = vertexSpecularColor;
 	UV = vertexUV;
+	opacity_out = opacity;
 
 }
